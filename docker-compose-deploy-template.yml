@@ -1,0 +1,47 @@
+services:
+  postgres_db:
+    image: postgres:17
+    container_name: t
+    restart: always
+    environment:
+      - POSTGRES_USER=
+      - POSTGRES_PASSWORD=
+      - POSTGRES_DB=
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  app:
+    build:
+      context: .
+    volumes:
+      - static_data:/vol/web
+    environment:
+      - SECRET_KEY=
+      - ALLOWED_HOSTS=
+      - DEBUG=0
+      - TIME_ZONE=Europe/Berlin           
+      - DB_NAME=
+      - DB_USER=
+      - DB_PASSWORD=
+      - DB_HOST= # Internal Docker hostname
+      - DB_PORT=5432
+      - LOG_LEVEL=ERROR
+
+  proxy:
+    build:
+      context: ./proxy
+    volumes:
+      - static_data:/vol/static
+      - ./proxy/certs:/etc/nginx/certs
+    ports:
+      - "8000:8000"
+    depends_on:
+      - app
+      
+volumes:
+  pgdata:
+  static_data:
+  mosquitto_data:
+  mosquitto_log:        
