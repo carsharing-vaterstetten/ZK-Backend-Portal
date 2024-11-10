@@ -11,13 +11,19 @@ from rest_framework import status
 from rest_framework import viewsets
 from django.utils.dateparse import parse_datetime
 from datetime import datetime
+from rest_framework.permissions import BasePermission
 
-# Create your views here.
 
+class IsAdminOrAPIUser(BasePermission):
+    def has_permission(self, request, view):
+        is_admin = IsAdminUser().has_permission(request, view)
+        is_api_user = request.user.groups.filter(name='API_USERS').exists()
+        return is_admin or is_api_user
+    
 class CardsCreateList(CreateModelMixin, ListAPIView):
     serializer_class = CardSerializer
     queryset = Cards.objects.all()
-    permission_classes = (IsAdminUser, )
+    permission_classes = (IsAdminOrAPIUser, )
 
     def get(self, request, *args, **kwargs):
         return self.list(request, *args, **kwargs)
@@ -34,7 +40,7 @@ class CardsCreateList(CreateModelMixin, ListAPIView):
 
 
 class CheckFirmware(APIView):
-    permission_classes = (IsAdminUser, )
+    permission_classes = (IsAdminOrAPIUser, )
     def post(self, request, *args, **kwargs):               
         firmware_version = request.data.get('firmware_version')
         firmware = Firmware.objects.filter(version=firmware_version).first()
@@ -61,12 +67,12 @@ class CheckFirmware(APIView):
         return response
         
 
-class FirmwareViewSet(viewsets.ModelViewSet):
+class FirmwareViewSet(viewsets.ModelViewSet): 
     queryset = Firmware.objects.all()
     serializer_class = FirmwareSerializer
 
 class ReceiveLogsView(APIView):
-    permission_classes = (IsAdminUser, )
+    permission_classes = (IsAdminOrAPIUser, )
     def post(self, request, format=None):
         data = request.data
         mac_address = data.get('mac_address')
