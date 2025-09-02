@@ -89,23 +89,27 @@ class ReceiveLogsView(APIView):
             firmware_version = log_entry.get('firmware_version')
             log_text = log_entry.get('log')
 
-            if not all([created_at_str, firmware_version, log_text]):
+            # Nur firmware_version und log_text sind zwingend erforderlich
+            if not all([firmware_version, log_text]):
                 return Response(
-                    {'error': 'Each log entry must contain created_at, firmware_version, and log.'},
+                    {'error': 'Each log entry must contain firmware_version and log.'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
             created_at = None
             try:
-                created_at = parse_datetime(created_at_str)
-                if created_at is None: 
-                    if '+' in created_at_str:
-                        created_at_str = created_at_str.split('+')[0]
-                        created_at = datetime.strptime(created_at_str, "%y/%m/%d,%H:%M:%S")  
+                if created_at_str:  # Nur parsen wenn created_at_str vorhanden ist
+                    created_at = parse_datetime(created_at_str)
+                    if created_at is None: 
+                        if '+' in created_at_str:
+                            created_at_str = created_at_str.split('+')[0]
+                            created_at = datetime.strptime(created_at_str, "%y/%m/%d,%H:%M:%S")  
             except (ValueError, TypeError):
-                # Wenn Arduino falsches Datum schickt schreiebn wir einfach 1970-01-01 00:00:00.
-                # m.E. macht es keinen sinn hierfür eine Fehlermeldung zu schicken
-                created_at = datetime(1970, 1, 1)
+                pass  # Fehler ignorieren, created_at bleibt None
+            
+            # Fallback auf 1992-01-01 wenn kein gültiges Datum gefunden wurde
+            if created_at is None:
+                created_at = datetime(1992, 1, 1)
 
             log_data = {
                 'uploaded_by': mac_address,
